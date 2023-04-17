@@ -1,5 +1,8 @@
 const fs = require("fs")
 
+// Loads environment variables from .env.enc file (if it exists)
+require("@chainlink/env-enc").config()
+
 // Soundchart Artist IDs for sandbox are available from https://doc.api.soundcharts.com/api/v2/doc/sandbox-data
 const BILLIE_EILISH = "11e81bcc-9c1c-ce38-b96b-a0369fe50396"
 const TONES_AND_I = "ca22091a-3c00-11e9-974f-549f35141000"
