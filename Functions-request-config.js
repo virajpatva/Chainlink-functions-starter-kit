@@ -32,7 +32,7 @@ const requestConfig = {
   // Code language (only JavaScript is currently supported)
   codeLanguage: CodeLanguage.JavaScript,
   // string containing the source code to be executed. Relative path used.
-  source: fs.readFileSync("./Twilio-Spotify-Functions-Source-Example.js").toString(),
+  source: fs.readFileSync("./01-Twilio-Spotify-Functions-Source-Example.js").toString(),
   // Per-node secrets objects assigned to each DON member. When using per-node secrets, nodes can only use secrets which they have been assigned.
   // ETH wallet key used to sign secrets so they cannot be accessed by a 3rd party
   walletPrivateKey: process.env["PRIVATE_KEY"],
