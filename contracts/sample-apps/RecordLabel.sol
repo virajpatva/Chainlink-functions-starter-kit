@@ -54,6 +54,7 @@ contract RecordLabel is FunctionsClient, ConfirmedOwner {
    * @notice Executes once when a contract is created to initialize state variables
    *
    * @param oracle - The FunctionsOracle contract
+   * @param stablecoin - stablecoin contract address for paying the artists.
    */
   // https://github.com/protofire/solhint/issues/242
   // solhint-disable-next-line no-empty-blocks
@@ -102,6 +103,7 @@ contract RecordLabel is FunctionsClient, ConfirmedOwner {
    * Either response or error parameter will be set, but never both
    */
   function fulfillRequest(bytes32 requestId, bytes memory response, bytes memory err) internal override {
+    latestResponse = response;
     latestError = err;
     emit OCRResponse(requestId, response, err);
 

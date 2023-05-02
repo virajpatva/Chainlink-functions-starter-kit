@@ -12,46 +12,82 @@ The smart contract calculates how much STC is payable to the recording artist (i
 
 <img width="540" alt="Messenger" src="https://user-images.githubusercontent.com/8016129/224178418-27f62a67-d44a-4fb4-8e74-c4c967f312dd.png"> <span /><span />
 
-## Instructions to run this sample
+## Setup & Environment Variables
 
-Before you get started we recommend you read the README in [the repo](https://github.com/smartcontractkit/functions-hardhat-starter-kit) carefully to understand how this sample is designed, under the hood. Then...
+Before you get started we recommend you read the README in [this Functions tooling repo](https://github.com/smartcontractkit/functions-hardhat-starter-kit) carefully to understand how this sample is designed, under the hood. Then...
 
-1. Get your Twilio Sendgrid API Keys by following [these docs](https://docs.sendgrid.com/for-developers/sending-email/api-getting-started). <b> You cannot use this sample without completing the Sendgrid setup steps!</b> Ensure you follow the verify process for the email address that you intend to send from. Sendgrid needs to approve it. Note: it can take up to 48 hours to get verified!<br><br>
+1. Get your Twilio Sendgrid API Keys by following [these docs](https://docs.sendgrid.com/for-developers/sending-email/api-getting-started). <b> You cannot use this sample without completing the Sendgrid setup steps!</b> Ensure you follow the verify process for the email address that you intend to send from. Sendgrid needs to approve it. **Note:** it can take a day or more to get verified!<br><br>
 
 2. Take a look at the [soundcharts sandbox api](https://doc.api.soundcharts.com/api/v2/doc). Note that the sandbox's API credentials are public for a very limited data set. It's enough for this sample.<br><br>
 
-3. Clone this repository to your local machine.<br><br>
+3. Clone this repository to your local machine. Then change to this directory in your terminal app and run `npm install` to install all dependencies.<br><br>
 
 4. Take a look at the [soundcharts sandbox api](https://doc.api.soundcharts.com/api/v2/doc). Note that the sandbox's API credentials are public for a very limited data set. It's enough for this sample.<br><br>
 
 5. Get your RPC URL with API key for Sepolia or Mumbai - from [Infura](https://infura.io) or [Alchemy](https://alchemy.com). Also, get your network's token (Sepolia Eth ) or [Mumbai Matic](https://faucet.polygon.technology/) and, after connecting your Metamask wallet to the right testnet, get some LINK token(faucets.link.com) into your Metamask or other browser wallet.<br><br>
 
-6. Open this directory in your command line, then run `npm install` to install all dependencies.<br><br>
+6. Prepare to have the following environment variables available for easy copy-pasting.  **We do not recommend** storing your keys/secrets locally on your machine in a human-readable form, so its best to open windows that show your keys.  Further down, we will explain how to use the included `env-enc` tool to encrypt them in the `.env.enc` file on your development machine.
 
-7. Set the required environment variables. This can be done by copying the file _.env.example_ to a new file named _.env_. (This renaming is important so that it won't be tracked by Git.)
-
-**NOTE:** This example requires a second wallet private key!
+**NOTE:** This Record Label example requires a second wallet private key!
 
 > :warning: DO NOT COMMIT YOUR .env FILE! The .gitignore file excludes .env but NOT .env.example
 
-Make sure you have at least the following:
+Make sure you have at least the following environment variables ready:
 
+          # For Email functionality
           ARTIST_EMAIL="PRETEND_YOUR_EMAIL_IS_THE_ARTISTS"
           VERIFIED_SENDER="THE_EMAIL_VERIFIED_BY_TWILIO"
-
           TWILIO_API_KEY="YOUR TWILIO API KEY"
+          
+          # Spotify streaming counts
           SOUNDCHART_APP_ID="soundcharts"
           SOUNDCHART_API_KEY="soundcharts"
 
-
-          MUMBAI_RPC_URL="https://polygon-mumbai.g.alchemy.com/v2/ExampleKey"  # OR
+          # Blockchain node access
+          MUMBAI_RPC_URL="https://polygon-mumbai.g.alchemy.com/v2/ExampleKey"  
+          # OR
           SEPOLIA_RPC_URL="https://sepolia.infura.io/v3/ExampleKey"
 
-          # and
-          PRIVATE_KEY="EVM wallet private key (Example: 6c0d*********************************************ac8da9)"
-          SECOND_PRIVATE_KEY="SECONDWALLET KEY HERE"
+          # Wallet keys
+          PRIVATE_KEY  # This should be the allowlisted / whitelisted address so that you can use Chainlink Functions while it is in closed beta
+          SECOND_PRIVATE_KEY # this is the address we will use to receive the recording artist's payments into!
+
+          # For Off Chain Encrypted Secrets
+          GITHUB_API_TOKEN # get from Github
 
 If you want to verify smart contracts using the `--verify` flag, the _ETHERSCAN_API_KEY_ or _POLYGONSCAN_API_KEY_ must be set in your .env file so their values can be read in `Functions-request-config.js`.<br><br>
+
+
+7. Login to Github and head to your [settings](https://github.com/settings/tokens?type=beta) to generate a "Fine Grained Personal Access Token". Name the token, set its expiration period and then go down to **Permissions** >> "Account permissions" >> "Gists" and from the "Access" dropdown, select "Read and write". 
+
+Scroll to the bottom of the page and click "Generate token" and copy the resulting personal access token.  
+> ⚠️	⚠️	⚠️ You cannot view this token in Github after this – so make sure you paste the value <u>temporarily</u> somewhere in case you need to close this window or want to navigate away from this page
+
+
+<img width="637" alt="Screenshot 2023-05-01 at 10 59 30 am" src="https://user-images.githubusercontent.com/8016129/235385875-5ff0c21c-813d-4554-8934-0f9065cc0a2e.png">
+
+8. Next we encrypt our environment variables and store them in encrypted form. But to do that we need to supply a password to encrypt the secrets and keys with 
+```bash
+npx env-enc set-pw
+```
+This command npx env-enc set-pw must be run EVERY time you open or restart a terminal session, so that the encrypted secrets in your .env.enc file can be read by the package. After you set the password the first time, you must enter the identical password for the secrets to be successfully decrypted.
+
+
+9. Set the encrypted values to your secrets <u>one by one</u> using the following command:
+```bash
+npx env-enc set
+```
+Doing npx env-enc set will initiate a UI in your terminal for you to put your env var NAME and then its corresponding value as shown here:
+<img width="765" alt="Screenshot 2023-05-01 at 11 09 16 am" src="https://user-images.githubusercontent.com/8016129/235386817-dc290db7-56b9-4c5f-8f86-9d881a712f35.png">
+
+10. When you set one or more encrypted environment variables using `env-enc`, the tool creates a `env.enc` file in your project root.  It looks like this:
+<img width="659" alt="Screenshot 2023-05-01 at 11 10 58 am" src="https://user-images.githubusercontent.com/8016129/235386889-63a4d536-b0b3-4841-aa2a-411ab81be80f.png">
+
+Remember, this `.env.enc` file can be copied and pasted into other Chainlink Functons projects but you'll need to use the `env-enc` package and you'll need to use the same password with which you encrypted these secrets.
+
+11. When you make an on-chain request these encrypted secrets get uploaded to a private gist on your Github account, and once the Functions request is fulfilled, the gist is automatically deleted by the tool.
+
+## Instructions to run this sample
 
 8. Study the file `./Twilio-Spotify-Functions-Source-Example.js`. Note how it accesses and uses arguments that you pass in, including the `VERIFIED_SENDER` constant. Then study the `RecordLabel` contract in `../../contracts/sample-apps/RecordLabel.sol` which makes the request and receives the results sent by the Functions source code example. The request is initiated via `executeRequest()` and the DON will return the output of your custom code in the `fulfillRequest()` callback. <br><br>
 
@@ -97,7 +133,7 @@ accounts: process.env.PRIVATE_KEY
     `npx hardhat functions-request --network sepolia --contract <<0x-client-contract-address>> --subid <__<__Subscription Id from previous step__>> --gaslimit 300000`. <br><br>
     The tool will log helpful information on each step. Note that unless you pass the flag `--simulate false` this command automatically invokes the local simulation once before commencing on-chain transactions. This means the email API will be hit once, as part of the simulation!<br><br>
 
-        At the end of it, you can check the wallet address that corresponds to your `process.env.SECOND_PRIVATE_KEY` and open it in the network's block explore. You should see STC tokens showing up, proving that your second address was paid out (because we pretended your second wallet address is the artist's, remember?)
+    At the end of it, you can your second wallet address that corresponds to your `process.env.SECOND_PRIVATE_KEY` and open it in the network's block explorer. You should see STC tokens showing up, proving that your second address was paid out (because we pretended your second wallet address is the artist's, remember?). Or you can import the STC token into Metamask, using the STC contract address we just deployed, and the payment amount will show up there!
 
 <img width="540" alt="Messenger" src="https://user-images.githubusercontent.com/8016129/224178593-e0dcf724-0d38-402c-8d28-84ab9f85dca1.png"> <span /><span />
 
