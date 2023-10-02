@@ -146,3 +146,7 @@ accounts: process.env.PRIVATE_KEY
 This sample uses the Chainlink Functions tooling forked from [this repo](https://github.com/smartcontractkit/functions-hardhat-starter-kit).
 
 To get a full list of powerful and flexible commands available using the Chainlink Functions CLI tool, please visit the [ repo's command glossary](https://github.com/smartcontractkit/functions-hardhat-starter-kit#command-glossary).
+
+## Disclaimer
+
+This tutorial offers educational examples of how to use a Chainlink system, product, or service and is provided to demonstrate how to interact with Chainlink’s systems, products, and services to integrate them into your own. This template is provided “AS IS” and “AS AVAILABLE” without warranties of any kind, it has not been audited, and it may be missing key checks or error handling to make the usage of the system, product, or service more clear. Do not use the code in this example in a production environment without completing your own audits and application of best practices. Neither Chainlink Labs, the Chainlink Foundation, nor Chainlink node operators are responsible for unintended outputs that are generated due to errors in code.
