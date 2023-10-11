@@ -1,5 +1,5 @@
 const { types } = require("hardhat/config")
-const { VERIFICATION_BLOCK_CONFIRMATIONS, networkConfig } = require("../../network-config")
+const { DEFAULT_VERIFICATION_BLOCK_CONFIRMATIONS, networks } = require("../../networks")
 
 task("functions-approve-spender", "Approves RecordLabel to pay STC to artist")
   .addParam("stcContract", "Contract address for the Simple Stable Coin")
@@ -15,7 +15,7 @@ task("functions-approve-spender", "Approves RecordLabel to pay STC to artist")
     console.log("\n__Compiling Contracts__")
     await run("compile")
 
-    const oracleAddress = networkConfig[network.name]["functionsOracleProxy"]
+    const oracleAddress = networks[network.name]["functionsOracleProxy"]
     const stcAddress = taskArgs.stcContract
     const recordLabelAddress = taskArgs.clientContract
 

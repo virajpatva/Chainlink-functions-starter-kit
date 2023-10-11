@@ -1,5 +1,5 @@
 const { types } = require("hardhat/config")
-const { VERIFICATION_BLOCK_CONFIRMATIONS, networkConfig } = require("../../network-config")
+const { DEFAULT_VERIFICATION_BLOCK_CONFIRMATIONS, networks } = require("../../networks")
 
 task("functions-deploy-recordlabel", "Deploys the RecordLabel contract")
   .addParam("stcContract", "Contract address for the Simple Stable Coin")
@@ -11,27 +11,35 @@ task("functions-deploy-recordlabel", "Deploys the RecordLabel contract")
       )
     }
 
-    console.log(`Deploying RecordLabel contract to ${network.name}`)
-
-    const oracleAddress = networkConfig[network.name]["functionsOracleProxy"]
     const stcAddress = taskArgs.stcContract
-
     if (!ethers.utils.isAddress(stcAddress))
       throw Error("Please provide a valid contract address for the SimpleStableCoin contract")
+
+    console.log(`Deploying RecordLabel contract to ${network.name}`)
+    const functionsRouter = networks[network.name]["functionsRouter"]
+    const donIdBytes32 = hre.ethers.utils.formatBytes32String(networks[network.name]["donId"])
 
     console.log("\n__Compiling Contracts__")
     await run("compile")
 
-    const accounts = await ethers.getSigners()
+    const overrides = {}
+    // If specified, use the gas price from the network config instead of Ethers estimated price
+    if (networks[network.name].gasPrice) {
+      overrides.gasPrice = networks[network.name].gasPrice
+    }
+    // If specified, use the nonce from the network config instead of automatically calculating it
+    if (networks[network.name].nonce) {
+      overrides.nonce = networks[network.name].nonce
+    }
 
     // Deploy RecordLabel
-    const clientContractFactory = await ethers.getContractFactory("RecordLabel")
-    const clientContract = await clientContractFactory.deploy(oracleAddress, stcAddress)
+    const consumerContractFactory = await ethers.getContractFactory("RecordLabel")
+    const consumerContract = await consumerContractFactory.deploy(functionsRouter, donIdBytes32, stcAddress, overrides)
 
     console.log(
-      `\nWaiting ${VERIFICATION_BLOCK_CONFIRMATIONS} blocks for transaction ${clientContract.deployTransaction.hash} to be confirmed...`
+      `\nWaiting ${DEFAULT_VERIFICATION_BLOCK_CONFIRMATIONS} blocks for transaction ${consumerContract.deployTransaction.hash} to be confirmed...`
     )
-    await clientContract.deployTransaction.wait(VERIFICATION_BLOCK_CONFIRMATIONS)
+    await consumerContract.deployTransaction.wait(DEFAULT_VERIFICATION_BLOCK_CONFIRMATIONS)
 
     // Verify the RecordLabel Contract
     const verifyContract = taskArgs.verify
@@ -39,10 +47,10 @@ task("functions-deploy-recordlabel", "Deploys the RecordLabel contract")
     if (verifyContract && (process.env.POLYGONSCAN_API_KEY || process.env.ETHERSCAN_API_KEY)) {
       try {
         console.log("\nVerifying contract...")
-        await clientContract.deployTransaction.wait(Math.max(6 - VERIFICATION_BLOCK_CONFIRMATIONS, 0))
+        await consumerContract.deployTransaction.wait(Math.max(6 - DEFAULT_VERIFICATION_BLOCK_CONFIRMATIONS, 0))
         await run("verify:verify", {
-          address: clientContract.address,
-          constructorArguments: [oracleAddress, stcAddress],
+          address: consumerContract.address,
+          constructorArguments: [functionsRouter, donIdBytes32, stcAddress],
         })
         console.log("RecordLabel verified")
       } catch (error) {
@@ -57,5 +65,5 @@ task("functions-deploy-recordlabel", "Deploys the RecordLabel contract")
       console.log("\nPOLYGONSCAN_API_KEY or ETHERSCAN_API_KEY missing. Skipping contract verification...")
     }
 
-    console.log(`\nRecordLabel contract deployed to ${clientContract.address} on ${network.name}`)
+    console.log(`\nRecordLabel contract deployed to ${consumerContract.address} on ${network.name}`)
   })

@@ -1,16 +1,11 @@
 // SPDX-License-Identifier: MIT
-pragma solidity ^0.8.7;
+pragma solidity ^0.8.19;
 
-import "../dev/functions/FunctionsClient.sol";
-// import "@chainlink/contracts/src/v0.8/dev/functions/FunctionsClient.sol"; // Once published
-// import "https://github.com/smartcontractkit/functions-hardhat-starter-kit/blob/main/contracts/dev/functions/FunctionsClient.sol";
-
-import "@chainlink/contracts/src/v0.8/ConfirmedOwner.sol";
+import {FunctionsClient} from "@chainlink/contracts/src/v0.8/functions/dev/v1_0_0/FunctionsClient.sol";
+import {ConfirmedOwner} from "@chainlink/contracts/src/v0.8/shared/access/ConfirmedOwner.sol";
+import {FunctionsRequest} from "@chainlink/contracts/src/v0.8/functions/dev/v1_0_0/libraries/FunctionsRequest.sol";
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-
-// TODO @Zubin disable solhint
-// import "hardhat/console.sol"; // NOTE: console.log only works in Hardhat local networks and the local functions simluation, not on testnets or mainnets.
 
 interface IStableCoin is IERC20 {
   function mint(address to, uint256 amount) external;
@@ -24,7 +19,7 @@ interface IStableCoin is IERC20 {
  * @notice NOT FOR PRODUCTION USE
  */
 contract RecordLabel is FunctionsClient, ConfirmedOwner {
-  using Functions for Functions.Request;
+  using FunctionsRequest for FunctionsRequest.Request;
 
   bytes32 public latestRequestId;
   bytes public latestResponse;
@@ -32,6 +27,8 @@ contract RecordLabel is FunctionsClient, ConfirmedOwner {
   string public latestArtistRequestedId;
 
   address public s_stc; // SimpleStableCoin address for payouts.
+
+  bytes32 public donId; // DON ID for the Functions DON to which the requests are sent
 
   error RecordLabel_ArtistPaymentError(string artistId, uint256 payment, string errorMsg);
 
@@ -50,48 +47,42 @@ contract RecordLabel is FunctionsClient, ConfirmedOwner {
   event OCRResponse(bytes32 indexed requestId, bytes result, bytes err);
   event ArtistPaid(string artistId, uint256 amount);
 
-  /**
-   * @notice Executes once when a contract is created to initialize state variables
-   *
-   * @param oracle - The FunctionsOracle contract
-   * @param stablecoin - stablecoin contract address for paying the artists.
-   */
-  // https://github.com/protofire/solhint/issues/242
-  // solhint-disable-next-line no-empty-blocks
-  constructor(address oracle, address stablecoin) FunctionsClient(oracle) ConfirmedOwner(msg.sender) {
+  constructor(address router, bytes32 _donId, address stablecoin) FunctionsClient(router) ConfirmedOwner(msg.sender) {
+    donId = _donId;
     s_stc = stablecoin;
   }
 
   /**
-   * @notice Send a simple request
-   *
+   * @notice Triggers an on-demand Functions request using remote encrypted secrets
    * @param source JavaScript source code
-   * @param secrets Encrypted secrets payload
-   * @param args List of arguments accessible from within the source code
-   * @param subscriptionId Billing ID
-   * @param gasLimit Maximum amount of gas used to call the client contract's `handleOracleFulfillment` function
-   * @return Functions request ID
+   * @param secretsLocation Location of secrets (only Location.Remote & Location.DONHosted are supported)
+   * @param encryptedSecretsReference Reference pointing to encrypted secrets
+   * @param args String arguments passed into the source code and accessible via the global variable `args`
+   * @param bytesArgs Bytes arguments passed into the source code and accessible via the global variable `bytesArgs` as hex strings
+   * @param subscriptionId Subscription ID used to pay for request (FunctionsConsumer contract address must first be added to the subscription)
+   * @param callbackGasLimit Maximum amount of gas used to call the inherited `handleOracleFulfillment` method
    */
-  function executeRequest(
+  function sendRequest(
     string calldata source,
-    bytes calldata secrets,
-    string[] calldata args, // args in sequence are: ArtistID, artistname,  lastListenerCount, artist email
+    FunctionsRequest.Location secretsLocation,
+    bytes calldata encryptedSecretsReference,
+    string[] calldata args,
+    bytes[] calldata bytesArgs,
     uint64 subscriptionId,
-    uint32 gasLimit
-  ) public onlyOwner returns (bytes32) {
-    Functions.Request memory req;
-    req.initializeRequest(Functions.Location.Inline, Functions.CodeLanguage.JavaScript, source);
-
-    if (secrets.length > 0) {
-      req.addRemoteSecrets(secrets);
+    uint32 callbackGasLimit
+  ) external onlyOwner {
+    FunctionsRequest.Request memory req;
+    req.initializeRequest(FunctionsRequest.Location.Inline, FunctionsRequest.CodeLanguage.JavaScript, source);
+    req.secretsLocation = secretsLocation;
+    req.encryptedSecretsReference = encryptedSecretsReference;
+    if (args.length > 0) {
+      req.setArgs(args);
     }
-    if (args.length > 0) req.addArgs(args);
-
-    // Update storage variables.
-    bytes32 assignedReqID = sendRequest(req, subscriptionId, gasLimit);
-    latestRequestId = assignedReqID;
+    if (bytesArgs.length > 0) {
+      req.setBytesArgs(bytesArgs);
+    }
+    latestRequestId = _sendRequest(req.encodeCBOR(), subscriptionId, callbackGasLimit, donId);
     latestArtistRequestedId = args[0];
-    return assignedReqID;
   }
 
   /**
@@ -111,9 +102,12 @@ contract RecordLabel is FunctionsClient, ConfirmedOwner {
     // Artist gets a fixed rate for every addition 1000 active monthly listeners.
     bool nilErr = (err.length == 0);
     if (nilErr) {
-      string memory artistId = latestArtistRequestedId;
-      (int256 latestListenerCount, int256 diffListenerCount) = abi.decode(response, (int256, int256));
+      int256 latestListenerCount = abi.decode(response, (int256));
 
+      string memory artistId = latestArtistRequestedId;
+      uint256 lastListenerCount = artistData[artistId].lastListenerCount;
+
+      int256 diffListenerCount = latestListenerCount - int256(lastListenerCount);
       if (diffListenerCount <= 0) {
         // No payments due.
         return;
@@ -123,9 +117,6 @@ contract RecordLabel is FunctionsClient, ConfirmedOwner {
       uint8 stcDecimals = IStableCoin(s_stc).decimals();
       // Artist gets 1 STC per  10000 additional streams.
       uint256 amountDue = (uint256(diffListenerCount) * 1 * 10 ** stcDecimals) / 10000;
-
-      // TODO @Zubin disable solhint
-      // console.log("\nAmount Due To Artist: ", amountDue);
 
       payArtist(artistId, amountDue);
 
@@ -169,15 +160,11 @@ contract RecordLabel is FunctionsClient, ConfirmedOwner {
   }
 
   // Utility Functions
-  function updateOracleAddress(address oracle) public onlyOwner {
-    setOracle(oracle);
+  function updateDonId(bytes32 _donId) public onlyOwner {
+    donId = _donId;
   }
 
   function updateStableCoinAddress(address stc) public onlyOwner {
     s_stc = stc;
-  }
-
-  function addSimulatedRequestId(address oracleAddress, bytes32 requestId) public onlyOwner {
-    addExternalRequest(oracleAddress, requestId);
   }
 }

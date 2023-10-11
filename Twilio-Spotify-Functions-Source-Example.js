@@ -9,7 +9,7 @@ const artistEmail = args[3]
 const VERIFIED_SENDER = args[4]
 
 // Ref: https://doc.api.soundcharts.com/api/v2/doc/reference/path/artist/get-latest-spotify-monthly-listeners
-const URL = `https://sandbox.api.soundcharts.com/api/v2/artist/${artistId}/streaming/spotify/listeners`
+const URL = `https://customer.api.soundcharts.com/api/v2/artist/${artistId}/streaming/spotify/listeners`
 
 // Get Listener Count Data.
 if (!artistId) {
@@ -40,12 +40,11 @@ if (latestListenerCount > lastListenerCount) {
 // - Functions.encodeString
 // Or return a custom Buffer for a custom byte encoding
 
-return Buffer.concat([Functions.encodeInt256(latestListenerCount), Functions.encodeInt256(diffListenerCount)])
+return Functions.encodeInt256(latestListenerCount)
 
 // ====================
 // Helper Functions
 // ====================
-
 async function getLatestMonthlyListenerCount() {
   console.log("\nFetching artist data from API...")
   /* To make an HTTP request, use the Functions.makeHttpRequest function
@@ -66,13 +65,13 @@ async function getLatestMonthlyListenerCount() {
 
   // Handle API error.
   if (soundchartsResponse.error) {
-    const returnedErr = soundchartsResponse.response.data
+    const returnedErr = soundchartsResponse
     let apiErr = new Error(`API returned one or more errors: ${JSON.stringify(returnedErr)}`)
     apiErr.returnedErr = returnedErr
     throw apiErr
   }
 
-  newListenerCount = soundchartsResponse.data.items[0].value
+  const newListenerCount = soundchartsResponse.data.items[0].value
   console.log(
     `\nNew Listener Count: ${newListenerCount.toLocaleString()}. Last Listener Count: ${lastListenerCount.toLocaleString()}. Diff: ${(
       newListenerCount - lastListenerCount
@@ -149,7 +148,12 @@ TwiLink Records
     sendgridResponse = await Functions.makeHttpRequest(functionsReqData)
 
     if (sendgridResponse.error) {
-      throw new Error("Sendgrid API responded with error: " + JSON.stringify(sendgridResponse.response.data.errors[0]))
+      // Bug in Twilio API return this error message even if email sends. So ignore this message.
+      if (!sendgridResponse.message.includes("Unexpected end of JSON input")) {
+        throw new Error(
+          "Sendgrid API responded with error: " + JSON.stringify(sendgridResponse.response.data.errors[0])
+        )
+      }
     }
   } catch (error) {
     console.log("\nFailed when sending email.")

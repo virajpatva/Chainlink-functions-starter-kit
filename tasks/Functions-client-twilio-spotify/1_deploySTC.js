@@ -1,5 +1,5 @@
 const { types } = require("hardhat/config")
-const { VERIFICATION_BLOCK_CONFIRMATIONS, networkConfig } = require("../../network-config")
+const { DEFAULT_VERIFICATION_BLOCK_CONFIRMATIONS } = require("../../networks")
 
 task("functions-deploy-stablecoin", "Deploys the SimpleStableCoin contract for Twilio-Spotify sample")
   .addOptionalParam("verify", "Set to true to verify client contract", false, types.boolean)
@@ -20,16 +20,16 @@ task("functions-deploy-stablecoin", "Deploys the SimpleStableCoin contract for T
     const stcContract = await stcContractFactory.deploy()
 
     console.log(
-      `\nWaiting ${VERIFICATION_BLOCK_CONFIRMATIONS} blocks for transaction ${stcContract.deployTransaction.hash} to be confirmed...`
+      `\nWaiting ${DEFAULT_VERIFICATION_BLOCK_CONFIRMATIONS} blocks for transaction ${stcContract.deployTransaction.hash} to be confirmed...`
     )
-    await stcContract.deployTransaction.wait(VERIFICATION_BLOCK_CONFIRMATIONS)
+    await stcContract.deployTransaction.wait(DEFAULT_VERIFICATION_BLOCK_CONFIRMATIONS)
 
     const verifyContract = taskArgs.verify
 
     if (verifyContract && (process.env.POLYGONSCAN_API_KEY || process.env.ETHERSCAN_API_KEY)) {
       try {
         console.log("\nVerifying contract...")
-        await stcContract.deployTransaction.wait(Math.max(6 - VERIFICATION_BLOCK_CONFIRMATIONS, 0))
+        await stcContract.deployTransaction.wait(Math.max(6 - DEFAULT_VERIFICATION_BLOCK_CONFIRMATIONS, 0))
         await run("verify:verify", {
           address: stcContract.address,
           constructorArguments: [],
