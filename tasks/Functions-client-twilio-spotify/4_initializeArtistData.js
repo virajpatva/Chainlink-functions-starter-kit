@@ -1,5 +1,4 @@
-const { types } = require("hardhat/config")
-const { VERIFICATION_BLOCK_CONFIRMATIONS, networkConfig } = require("../../network-config")
+const { DEFAULT_VERIFICATION_BLOCK_CONFIRMATIONS, networks } = require("../../networks")
 
 task("functions-initialize-artist", "Seed RecordLabel with Artist Data")
   .addParam("clientContract", "Contract address for RecordLabel")
@@ -15,26 +14,22 @@ task("functions-initialize-artist", "Seed RecordLabel with Artist Data")
       throw Error("Please provide a valid contract address for the SimpleStableCoin contract")
 
     const requestConfig = require("../../Functions-request-config.js")
-    const accounts = await ethers.getSigners()
+    const [deployerAccount, artistAccount] = await ethers.getSigners()
 
-    if (!accounts[1])
+    if (!artistAccount)
       throw new Error("Artist Wallet Address missing - you may need to add a second private key to hardhat config.")
 
     // Pretend your second wallet address is the Artist's wallet, and setup ArtistData on RecordLabel to point to your address.
-    const artistAddress = accounts[1].address // This pretends your deployer wallet is the artist's.
+    const artistAddress = artistAccount.address // This pretends your deployer wallet is the artist's.
 
     if (!artistAddress || !ethers.utils.isAddress(artistAddress)) {
       throw new Error("Invalid Second Wallet Address. Please check SECOND_PRIVATE_KEY in env vars.")
     }
 
     const [artistId, artistName, artistListenerCount, artistEmail] = requestConfig.args
-    console.log(
-      "\n Adding following artist data to RecordLabel: ",
-      artistId,
-      artistName,
-      artistListenerCount,
-      artistEmail
-    )
+
+    console.log("\nAdding following artist data to RecordLabel: \n ")
+    console.table({ artistId, artistName, artistListenerCount, artistEmail })
 
     const clientContractFactory = await ethers.getContractFactory("RecordLabel")
     const clientContract = await clientContractFactory.attach(recordLabelAddress)
