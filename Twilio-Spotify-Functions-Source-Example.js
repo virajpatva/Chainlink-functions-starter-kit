@@ -40,13 +40,11 @@ if (latestListenerCount > lastListenerCount) {
 // - Functions.encodeString
 // Or return a custom Buffer for a custom byte encoding
 
-// return Buffer.concat([Functions.encodeInt256(latestListenerCount), Functions.encodeInt256(diffListenerCount)]) // TODO zubin cleanup
 return Functions.encodeInt256(latestListenerCount)
 
 // ====================
 // Helper Functions
 // ====================
-
 async function getLatestMonthlyListenerCount() {
   console.log("\nFetching artist data from API...")
   /* To make an HTTP request, use the Functions.makeHttpRequest function

@@ -7,9 +7,6 @@ import {FunctionsRequest} from "@chainlink/contracts/src/v0.8/functions/dev/v1_0
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-// TODO @Zubin disable solhint
-// import "hardhat/console.sol"; // NOTE: console.log only works in Hardhat local networks and the local functions simluation, not on testnets or mainnets.
-
 interface IStableCoin is IERC20 {
   function mint(address to, uint256 amount) external;
 
