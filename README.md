@@ -1,6 +1,6 @@
 # Chainlink Functions <> Music Artist - Record Label Contract
 
-Chainlink Functions allows users to get data from any API, even with API secrets, and perform custom/heavy computations using code logic that you provide. Chainlink Functions is currently in a closed beta. Request access to use Chainlink Functions at https://functions.chain.link.
+Chainlink Functions allows users to get data from any API, even with API secrets, and perform custom/heavy computations using code logic that you provide. Chainlink Functions is currently beta on mainnet. To use Chainlink Functions please go to https://functions.chain.link, connect your wallet and create a subscription. That will involve 2 transactions - one to accept the TOS so your wallet is allowlisted, and the second to actually create a subscription.  More details on subscriptions is provided later in this README.
 
 This use case showcases how Chainlink Functions can be used to facilitate a digital agreement between a record label and a music artist, with Chainlink Functions being used to obtain the artists streaming numbers from a Spotify wrapper, as well as sending them notifications as payments are made using the [Twilio SendGrid Email API](https://www.twilio.com/en-us/sendgrid/email-api)
 
